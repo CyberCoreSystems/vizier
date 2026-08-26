@@ -5,8 +5,11 @@ Vizier runs an OpenTofu/Terraform unit tree in dependency order - and runs
 whose module is unsigned, unverified, or below the required verification status
 is **blocked before any `tofu apply`** (fail-closed).
 
-It is Terragrunt-shaped: one `vizier.hcl` per unit, `include` for DRY config,
-`dependency` blocks that thread outputs.
+It replaces Terragrunt rather than wrapping it. Everything Terragrunt does,
+Vizier does - one `vizier.hcl` per unit, `include` for DRY config, `dependency`
+blocks that thread outputs, run-all across a dependency graph - and then it does
+the part Terragrunt has never done: it refuses to run a module it cannot
+verify.
 
 **On what is and is not novel here.** Refusing to execute an artifact whose
 signature does not verify against a pinned key is not a new idea, and this

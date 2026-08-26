@@ -41,3 +41,45 @@ Copyright (c) The Go Authors, under a BSD 3-Clause licence.
 
 The full text of each licence accompanies its component in the sources
 published by its authors at the addresses above.
+
+================================================================================
+UPSTREAM NOTICE FILES, REPRODUCED VERBATIM
+
+Apache License 2.0 section 4(d) requires that where a component ships its own
+NOTICE file, its contents be reproduced in the notices distributed with any
+derivative. Two of the components above do. Their text follows exactly as
+published, and applies to those components only - nothing below grants any
+right in Vizier, and none of it is our text.
+================================================================================
+
+--- github.com/agext/levenshtein ------------------------------------------------
+
+Alrux Go EXTensions (AGExt) - package levenshtein
+Copyright 2016 ALRUX Inc.
+
+This product includes software developed at ALRUX Inc.
+(http://www.alrux.com/).
+
+--- github.com/zclconf/go-cty-yaml ----------------------------------------------
+
+This package is derived from gopkg.in/yaml.v2, which is copyright
+2011-2016 Canonical Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Includes mechanical ports of code from libyaml, distributed under its original
+license. See LICENSE.libyaml for more information.
+
+Modifications for cty interfacing copyright 2019 Martin Atkins, and
+distributed under the same license terms.
+

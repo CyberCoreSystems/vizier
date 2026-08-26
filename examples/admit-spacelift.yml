@@ -1,0 +1,32 @@
+# Vizier admit inside Spacelift.
+#
+# Spacelift gates the PLAN with Rego. This adds the question its policy engine
+# structurally cannot answer: was the module's code signed by a publisher you
+# trust, and does its evidence clear your floor. Rego sees the plan JSON; it
+# never sees an artifact signature.
+#
+# Put this in .spacelift/config.yml at the root of the stack's repository.
+
+version: "1"
+
+before_init:
+  # Fetched by checksum, not by a moving tag. A supply-chain check installed
+  # from an unverified download would be an odd way to start.
+  - |
+    curl -fsSL https://raw.githubusercontent.com/CyberCoreSystems/vizier/main/install.sh | sh
+  # Admission before anything is downloaded. A refusal here costs no provider
+  # fetch and no state lock.
+  - vizier admit . --trusted-key ./ci/keys --receipt ./vizier-admit.json
+
+before_apply:
+  # Re-checked at apply. A moved git tag resolves to different code under the
+  # same address, and the plan-to-apply gap is exactly where that happens.
+  - vizier admit . --trusted-key ./ci/keys
+
+# Keep the receipt: it is the artifact that shows which policy was in force and
+# which key vouched for each module. Spacelift surfaces it as a run artifact.
+after_apply:
+  - cat ./vizier-admit.json
+
+# A non-zero before_init aborts the run before Spacelift touches the state
+# backend. Exit 3 means policy refused; exit 1 means vizier could not run.

@@ -1,0 +1,126 @@
+VIZIER END USER LICENCE AGREEMENT
+
+Copyright (c) 2026 Zaher Elali. All rights reserved.
+
+Vizier is proprietary software. It is offered as a free download; it is not
+open source, and no rights in its source code are granted by this licence.
+
+Read this before installing. Installing or using the Software means you accept
+these terms. If you do not accept them, do not install or use it.
+
+1. DEFINITIONS
+
+   "Software" means the Vizier executable program, in binary form, together
+   with the documentation and sample files distributed alongside it.
+
+   "Vizier Local" means the freely downloadable edition of the Software.
+
+   "Vizier Central" means the multi-user control plane edition, which is
+   licensed separately under a paid subscription and is NOT covered by this
+   licence.
+
+   "You" means the individual or legal entity exercising rights under this
+   licence.
+
+2. GRANT OF RIGHTS
+
+   Subject to your compliance with this licence, the Licensor grants you a
+   worldwide, royalty-free, non-exclusive, non-transferable licence to:
+
+   (a) install and run Vizier Local on any number of machines you control;
+
+   (b) use it for any purpose, including commercial and production use, with
+       no usage meter, no seat count, and no expiry; and
+
+   (c) copy and redistribute Vizier Local, provided it is redistributed
+       complete and unmodified, at no charge, with this licence and all
+       notices intact.
+
+   No fee is payable for Vizier Local under any of the above.
+
+3. WHAT IS NOT GRANTED
+
+   The Software's source code is not licensed to you, is not distributed with
+   the Software, and nothing here grants any right to obtain, use, or create
+   derivative works of it.
+
+   You may not:
+
+   (a) reverse engineer, decompile, or disassemble the Software, or otherwise
+       attempt to derive its source code, EXCEPT to the extent that applicable
+       law expressly permits this despite this restriction, and then only to
+       the extent so permitted;
+
+   (b) modify the Software, or distribute a modified copy of it;
+
+   (c) sell the Software, charge a fee for it, or include it in a product or
+       service you charge for where the Software is a principal component of
+       what is being paid for;
+
+   (d) remove, obscure, or alter any copyright, licence, or attribution notice
+       in or displayed by the Software; or
+
+   (e) use the Licensor's names, trademarks, or logos except to state
+       accurately that you use the Software.
+
+4. VIZIER CENTRAL
+
+   Vizier Central is a separate, paid product. This licence grants no right to
+   use it. Where the Software refers to Vizier Central, or offers to connect to
+   it, that functionality requires a current subscription under a separate
+   agreement.
+
+5. THIRD-PARTY COMPONENTS
+
+   The Software is built with third-party open-source components, which remain
+   licensed under their own terms. Those terms govern those components and
+   nothing in this licence limits any right you have under them. The NOTICE
+   file distributed with the Software lists them.
+
+6. PREVIOUS RELEASES
+
+   Versions of Vizier published under the Apache License 2.0 remain available
+   to you under that licence, on the terms it states, for those versions. This
+   licence governs this version and later ones. It does not withdraw, and
+   cannot withdraw, any right already granted for an earlier version.
+
+7. RESERVATION OF RIGHTS
+
+   All rights not expressly granted are reserved by the Licensor. The Software
+   is licensed, not sold, and the Licensor retains all ownership of it.
+
+8. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+   Vizier verifies and orchestrates changes to infrastructure you control. It
+   does not assume responsibility for those changes. You remain responsible for
+   what you apply, to which account, and for reviewing what it reports before
+   acting on it.
+
+9. LIMITATION OF LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR SHALL NOT BE
+   LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES, OR FOR ANY LOSS OF PROFITS, REVENUE, DATA, OR BUSINESS, ARISING OUT
+   OF OR RELATED TO THE SOFTWARE, HOWEVER CAUSED AND ON ANY THEORY OF
+   LIABILITY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+   Nothing in this licence excludes or limits liability that cannot lawfully be
+   excluded or limited.
+
+10. TERMINATION
+
+    This licence ends automatically if you breach it. On termination you must
+    stop using the Software and destroy all copies you hold. Sections 3, 7, 8,
+    9 and 11 survive termination.
+
+11. GENERAL
+
+    This licence is the entire agreement between you and the Licensor regarding
+    Vizier Local. If any provision is held unenforceable, the rest remains in
+    force. Failure to enforce a provision is not a waiver of it.
+
+Contact: https://www.iac-bazaar.com

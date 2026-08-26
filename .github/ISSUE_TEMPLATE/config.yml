@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Buy or trial Vizier Central
+    url: https://www.iac-bazaar.com/pricing
+    about: The multi-user control plane, its pricing, and enterprise trials.
+  - name: Documentation
+    url: https://www.iac-bazaar.com/docs
+    about: Install guides, the run flow, and how verification works.

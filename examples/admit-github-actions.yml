@@ -1,0 +1,52 @@
+# Vizier admit as a GitHub Actions step.
+#
+# Drops into whatever Terraform workflow already exists. It does not replace the
+# plan, it refuses to let one happen with modules your policy does not allow.
+
+name: terraform
+on: [pull_request]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install vizier
+        run: curl -fsSL https://raw.githubusercontent.com/CyberCoreSystems/vizier/main/install.sh | sh
+
+      # Admission BEFORE init: a refused module costs no provider download.
+      - name: Admit modules
+        run: |
+          vizier admit ./environments/prod \
+            --trusted-key ./ci/trusted-keys \
+            --receipt admit.json
+
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=environments/prod init
+      - run: terraform -chdir=environments/prod plan -out=tfplan
+
+      # The transitive set. The source scan sees what the root declares; the
+      # plan sees what the root's modules pulled in as well. Checking only the
+      # first layer is bypassed by a single wrapper module.
+      - name: Admit the full module tree
+        run: |
+          terraform -chdir=environments/prod show -json tfplan > plan.json
+          vizier admit ./environments/prod \
+            --plan plan.json \
+            --trusted-key ./ci/trusted-keys \
+            --receipt admit-plan.json
+
+      # Kept whatever the outcome. "We were refused" is exactly the thing worth
+      # being able to prove later.
+      - name: Keep the receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vizier-admission
+          path: |
+            admit.json
+            admit-plan.json
+
+# Exit 3 = refused by policy, and the step fails.
+# Exit 1 = vizier could not run at all. Different problem, different reviewer.

@@ -1,0 +1,58 @@
+# Vizier admit inside Atlantis.
+#
+# Atlantis already decides WHEN a plan runs and who approves it. This adds one
+# question it does not ask: may these modules run at all. Nothing about your
+# workflow moves, no credential is shared, and state stays exactly where it is.
+#
+# Put this in repos.yaml (server side) or atlantis.yaml (repo side).
+
+repos:
+  - id: /.*/
+    workflow: vizier-admit
+    # Atlantis must be allowed to run the custom workflow.
+    allowed_overrides: [workflow]
+    allow_custom_workflows: true
+
+workflows:
+  vizier-admit:
+    plan:
+      steps:
+        # 1. Admission BEFORE init. This is the cheap, safe order: a refused
+        #    module costs nothing to reject, and refusing before `init` means
+        #    nothing was downloaded and no provider was fetched.
+        - run: |
+            vizier admit . \
+              --trusted-key /etc/vizier/keys \
+              --receipt "$DIR/.vizier-admit.json"
+        - init
+        - plan
+
+        # 2. Admission again, this time over the PLAN. The source scan sees only
+        #    what the root declares; the plan sees the full transitive set,
+        #    including modules pulled in by the modules you called. A policy that
+        #    only ever checked the first layer would be trivially bypassed by one
+        #    wrapper module.
+        - run: terraform show -json "$PLANFILE" > "$DIR/plan.json"
+        - run: |
+            vizier admit . \
+              --plan "$DIR/plan.json" \
+              --trusted-key /etc/vizier/keys \
+              --receipt "$DIR/.vizier-admit-plan.json"
+
+    apply:
+      steps:
+        # 3. And once more at apply. The gap between plan and apply is where a
+        #    dependency can change under you: a moved git tag resolves to
+        #    different code with the same address. Re-checking here costs a
+        #    second and closes that window.
+        - run: vizier admit . --trusted-key /etc/vizier/keys
+        - apply
+
+# Exit codes, which Atlantis surfaces as the step result:
+#   0  every module admitted
+#   3  at least one refused by policy   <- the step fails, the plan does not post
+#   1  vizier itself could not run (bad policy file, unreadable key, parse error)
+#
+# 3 is distinct from 1 on purpose: a policy refusal is a decision someone should
+# read, and a broken tool is an incident. Routing both to the same place wastes
+# the reviewer who is best placed to act.

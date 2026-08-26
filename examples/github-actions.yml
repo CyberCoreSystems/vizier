@@ -1,0 +1,95 @@
+# A proof-gated IaC pipeline.
+#
+# Copy into .github/workflows/ of the repo that holds your unit tree.
+#
+# The property this is built around: the apply job applies the PLAN FILE the
+# plan job produced and a human reviewed - not a fresh plan computed after
+# approval, which is where "the diff I approved" and "the change that shipped"
+# quietly diverge.
+name: infrastructure
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Drift detection. Nothing changed in git; if the plan is not empty, the
+    # cloud moved underneath you.
+    - cron: '0 6 * * *'
+
+# One infrastructure run at a time. Terraform state does not merge, and two
+# concurrent applies against one backend is how state gets corrupted.
+concurrency:
+  group: infrastructure-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write   # the PR receipt comment
+  id-token: write        # OIDC to the cloud - no long-lived keys in secrets
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE }}   # read-only role for plan
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: vizier
+        uses: CyberCoreSystems/vizier@v1.0.1
+        with:
+          action: plan
+          dir: infrastructure
+          plan-dir: .vizier-plans
+          detailed-exitcode: 'true'
+
+      # Carry the plans to the apply job. Without this the apply would re-plan,
+      # and the review would have been of a different plan.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vizier-plans
+          path: .vizier-plans
+          retention-days: 5
+
+      - name: Report drift on the scheduled run
+        if: github.event_name == 'schedule' && steps.vizier.outputs.has-changes == 'true'
+        run: |
+          echo "::warning title=Drift detected::The cloud no longer matches the committed configuration."
+          exit 1
+
+  apply:
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # A GitHub environment with required reviewers is what turns this into an
+    # approval gate. The proof-gate says the modules are verified; a human still
+    # says whether this change should ship.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: vizier-plans
+          path: .vizier-plans
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: CyberCoreSystems/vizier@v1.0.1
+        with:
+          action: apply
+          dir: infrastructure
+          plan-dir: .vizier-plans
+          # enforce is the default and should stay. `warn` runs modules that
+          # failed the gate; the receipt records it as a bypass, but a pipeline
+          # that warns and proceeds is not a gate.
+          verify-mode: enforce

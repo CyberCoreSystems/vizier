@@ -1,0 +1,204 @@
+name: 'Vizier - proof-gated IaC'
+description: >-
+  Run OpenTofu/Terraform across a unit tree, refusing to apply any module that
+  cannot be proven verified, and emit a run receipt anyone can re-check.
+author: 'IaC Bazaar'
+
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  action:
+    description: 'plan | apply | destroy'
+    required: true
+    default: 'plan'
+  dir:
+    description: 'Root of the unit tree'
+    required: false
+    default: '.'
+  version:
+    description: >-
+      Vizier release to use: a release TAG, or "latest". The tag form follows the
+      repository - `vizier/v1.0.1` in the monorepo (Go's nested-module
+      convention), `v1.0.1` in the standalone repo. "latest" resolves to the most
+      recent release, which in a monorepo may be a release of something else, so
+      pin the tag in anything you depend on.
+    required: false
+    default: 'latest'
+  verify-mode:
+    description: >-
+      enforce | warn | off. Leave this on enforce in CI. `warn` still runs
+      modules that failed the gate - the receipt records that as a bypass, but a
+      pipeline that warns and proceeds is not a gate.
+    required: false
+    default: 'enforce'
+  catalog-url:
+    description: 'Catalog base URL'
+    required: false
+    default: 'https://www.iac-bazaar.com'
+  plan-dir:
+    description: >-
+      Save plan files here (on plan) or apply them from here (on apply). Pass the
+      SAME path to both jobs, with the directory carried between them as an
+      artifact, so the apply applies exactly the plan that was reviewed.
+    required: false
+    default: ''
+  detailed-exitcode:
+    description: 'Exit 2 when a plan has pending changes (drift detection)'
+    required: false
+    default: 'false'
+  receipt:
+    description: 'Path to write the JSON run receipt'
+    required: false
+    default: 'vizier-receipt.json'
+  comment-on-pr:
+    description: >-
+      Post the receipt summary as a PR comment. Needs pull-requests: write.
+    required: false
+    default: 'true'
+
+outputs:
+  exit-code:
+    description: '0 ok, 1 error, 2 pending changes, 3 proof-gate blocked'
+    value: ${{ steps.run.outputs.exit-code }}
+  has-changes:
+    description: 'true when the plan found pending changes'
+    value: ${{ steps.run.outputs.has-changes }}
+  receipt-path:
+    description: 'Path to the JSON run receipt'
+    value: ${{ inputs.receipt }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install vizier
+      shell: bash
+      env:
+        VIZIER_VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        os=linux; arch=amd64; ext=tar.gz
+        case "$RUNNER_OS" in
+          Linux) os=linux ;;  macOS) os=darwin ;;  Windows) os=windows; ext=zip ;;
+        esac
+        case "$RUNNER_ARCH" in
+          X64) arch=amd64 ;;  ARM64) arch=arm64 ;;
+        esac
+        tag="$VIZIER_VERSION"
+        if [ "$tag" = "latest" ]; then
+          tag=$(gh release list --repo "$GITHUB_ACTION_REPOSITORY" --limit 1 --json tagName -q '.[0].tagName')
+        fi
+        # Release assets carry the VERSION in their name -
+        # `vizier_1.0.1_linux_amd64.tar.gz`, not `vizier_linux_amd64.tar.gz`.
+        # Without it the --pattern below matches nothing and the action cannot
+        # install at all. The tag is `vizier/v1.0.1` in the monorepo (Go's
+        # nested-module convention) and `v1.0.1` standalone, so strip whichever
+        # prefix is actually there rather than assuming one.
+        ver="${tag##*/}"; ver="${ver#v}"
+        asset="vizier_${ver}_${os}_${arch}.${ext}"
+
+        # Download and CHECK the archive against the release checksums. A tool
+        # whose entire purpose is verifying what you run has no business
+        # installing itself unverified.
+        gh release download "$tag" --repo "$GITHUB_ACTION_REPOSITORY" \
+          --pattern "$asset" --pattern "checksums.txt" --clobber
+
+        # Verify THIS asset, and fail if checksums.txt names no such file.
+        # Handing the whole file to `--check --ignore-missing` skips every entry
+        # when the asset name is wrong; coreutils then exits 1 with "no file was
+        # verified". That is fail-closed, so nothing unverified was ever going to
+        # install -- but the job simply never installs, and the message describes
+        # the symptom rather than the wrong filename that caused it. Selecting
+        # the line first makes a missing entry an empty pipe, which fails under
+        # pipefail and points at the real problem.
+        grep -F "$asset" checksums.txt | sha256sum --check -
+
+        case "$ext" in
+          zip) unzip -q -o "$asset" ;;
+          *)   tar xzf "$asset" ;;
+        esac
+        bin=vizier; [ "$os" = windows ] && bin=vizier.exe
+        install -m 0755 "$bin" "$RUNNER_TEMP/$bin"
+        echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+    - name: Run vizier
+      id: run
+      shell: bash
+      env:
+        VZ_ACTION: ${{ inputs.action }}
+        VZ_DIR: ${{ inputs.dir }}
+        VZ_MODE: ${{ inputs.verify-mode }}
+        VZ_CATALOG: ${{ inputs.catalog-url }}
+        VZ_PLAN_DIR: ${{ inputs.plan-dir }}
+        VZ_DETAILED: ${{ inputs.detailed-exitcode }}
+        VZ_RECEIPT: ${{ inputs.receipt }}
+      run: |
+        set -uo pipefail
+        # --auto-approve because a runner has no terminal. apply and destroy
+        # refuse to proceed without it rather than treating a closed stdin as
+        # consent, so CI states its intent instead of inheriting it.
+        args=(--dir "$VZ_DIR" --verify-mode "$VZ_MODE" --catalog-url "$VZ_CATALOG" --auto-approve
+              run-all "$VZ_ACTION" --receipt "$VZ_RECEIPT" --receipt-md vizier-receipt.md)
+        [ -n "$VZ_PLAN_DIR" ] && args+=(--plan-dir "$VZ_PLAN_DIR")
+        [ "$VZ_DETAILED" = "true" ] && args+=(--detailed-exitcode)
+
+        # `set -e` is deliberately OFF here: exit 2 means "there are changes",
+        # which is a result to report, not a failure to abort on.
+        vizier "${args[@]}"; code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "has-changes=$([ "$code" -eq 2 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        [ -f vizier-receipt.md ] && cat vizier-receipt.md >> "$GITHUB_STEP_SUMMARY"
+
+        # 3 is the proof-gate refusing. It fails the job on purpose and is
+        # surfaced distinctly so it can be routed to a different reviewer than a
+        # broken plan.
+        if [ "$code" -eq 3 ]; then
+          echo "::error title=Proof-gate blocked::A module could not be proven verified. See the receipt."
+          exit 3
+        fi
+        # Anything that is not a code this Action understands must FAIL. The
+        # tail used to be `[ "$code" -eq 1 ] && exit 1; exit 0`, so a crash, a
+        # signal (130 on cancel, 137 on OOM) or any future code fell through to
+        # a green step. A CI gate whose failure mode is "looks fine" is the one
+        # kind this project cannot ship.
+        case "$code" in
+          0) exit 0 ;;
+          2) exit 0 ;;  # pending changes: reported via has-changes, not a failure
+          *)
+            echo "::error title=Vizier failed::vizier exited $code"
+            exit "$code"
+            ;;
+        esac
+
+    - name: Comment the receipt on the PR
+      if: ${{ inputs.comment-on-pr == 'true' && github.event_name == 'pull_request' && always() }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR: ${{ github.event.pull_request.number }}
+      run: |
+        set -euo pipefail
+        [ -f vizier-receipt.md ] || exit 0
+        # One sticky comment that is edited in place, rather than a new comment
+        # per push - a thread of twenty stale plans is worse than none.
+        marker='<!-- vizier-receipt -->'
+        body="$marker"$'\n'"$(cat vizier-receipt.md)"
+        existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+          --jq "[.[] | select(.body | startswith(\"$marker\"))][0].id // empty")
+        if [ -n "$existing" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" >/dev/null
+        else
+          gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" >/dev/null
+        fi
+
+    - name: Upload the run receipt
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vizier-receipt-${{ inputs.action }}-${{ github.run_attempt }}
+        path: |
+          ${{ inputs.receipt }}
+          vizier-receipt.md
+        if-no-files-found: warn

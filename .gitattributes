@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.sh text eol=lf
+Jenkinsfile text eol=lf
+*.png binary
+*.gz binary
+*.zip binary

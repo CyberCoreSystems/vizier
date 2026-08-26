@@ -1,12 +1,43 @@
 Vizier
-Copyright 2026 Zaher Elali
+Copyright (c) 2026 Zaher Elali. All rights reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License in the LICENSE file distributed with this work, or at:
+Vizier is proprietary software, offered as a free download. Its terms are in
+the LICENSE file distributed with it. This NOTICE grants no rights in Vizier
+itself; it exists to acknowledge the third-party components below.
 
-    http://www.apache.org/licenses/LICENSE-2.0
+THIRD-PARTY COMPONENTS
 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied.
+The Vizier binary is statically linked and includes the following open-source
+components. They remain licensed under their own terms, which govern those
+components and are not limited by Vizier's licence. Copyright remains with
+their respective authors.
+
+Apache License 2.0
+  github.com/agext/levenshtein
+  github.com/inconshreveable/mousetrap
+  github.com/spf13/cobra
+  github.com/zclconf/go-cty-yaml
+
+MIT License
+  github.com/apparentlymart/go-textseg
+  github.com/mitchellh/go-wordwrap
+  github.com/zclconf/go-cty
+
+BSD 3-Clause License
+  github.com/google/go-cmp
+  github.com/spf13/pflag
+  golang.org/x/text
+
+Mozilla Public License 2.0
+  github.com/hashicorp/hcl
+
+  HCL is used unmodified. The MPL requires that source for MPL-covered files be
+  made available; it is published by its authors at
+  https://github.com/hashicorp/hcl and a copy may also be requested from us.
+  The MPL applies to those files, not to Vizier as a whole.
+
+Portions of this software are also built with the Go standard library,
+Copyright (c) The Go Authors, under a BSD 3-Clause licence.
+
+The full text of each licence accompanies its component in the sources
+published by its authors at the addresses above.
